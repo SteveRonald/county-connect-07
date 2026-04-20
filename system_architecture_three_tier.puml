@@ -1,0 +1,61 @@
+@startuml
+title County Connect - Three-Tier Architecture
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+}
+skinparam actor {
+  BackgroundColor #F0F8FF
+}
+
+left to right direction
+
+actor "End User" as User
+
+package "Presentation Layer\n(User Interface)" as PL {
+  rectangle "Web Browser / Mobile App" as Browser
+  rectangle "React Frontend\n(Vite + TypeScript + Tailwind)" as Frontend
+}
+
+package "Application Layer\n(Business Logic / Services)" as AL {
+  rectangle "API Gateway\n(REST endpoints)" as APIGateway
+  rectangle "Authentication Service\n/login, /register, /auth/me" as AuthService
+  rectangle "Citizen Service\n/citizens CRUD" as CitizenService
+  rectangle "Health Service\n/health summary" as HealthService
+  rectangle "Education Service\n/education summary" as EducationService
+  rectangle "Social Service\n/social-services summary" as SocialService
+  rectangle "Reports Service\n/reports/generate" as ReportsService
+  rectangle "Appointment Service\n/appointment requests" as AppointmentService
+}
+
+database "Database Layer\n(MySQL county_connect)" as DB
+cloud "External Services\n(Email/SMS, File Storage, Gov APIs)" as External
+
+User --> Browser : Uses UI
+Browser --> APIGateway : HTTP GET/POST
+APIGateway --> AuthService : Authentication
+APIGateway --> CitizenService : Citizen operations
+APIGateway --> HealthService : Health operations
+APIGateway --> EducationService : Education operations
+APIGateway --> SocialService : Social operations
+APIGateway --> ReportsService : Report generation
+APIGateway --> AppointmentService : Appointment management
+
+AuthService --> DB : users, sessions
+CitizenService --> DB : citizens, households
+HealthService --> DB : health_services, immunizations
+EducationService --> DB : education_services
+SocialService --> DB : social_services, social_programs
+ReportsService --> DB : reports
+AppointmentService --> DB : appointment_requests
+
+AppointmentService --> External : notifications
+ReportsService --> External : file storage
+AuthService --> External : email / OTP
+
+note bottom of DB : Centralized relational data store\n- users, citizens, households\n- health, education, social service records
+
+@enduml

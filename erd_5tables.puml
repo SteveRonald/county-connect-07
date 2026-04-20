@@ -1,0 +1,95 @@
+@startuml ERD - County Connect Core Tables
+title County Connect ERD (5 Tables)
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide circle
+
+entity "Users" as users {
+  * id : INT <<PK>>
+  --
+  * name : VARCHAR(150)
+  * email : VARCHAR(190)
+  * password_hash : VARCHAR(255)
+  * role : ENUM('admin','staff','manager')
+  * department : VARCHAR(100)
+  * status : ENUM('Active','Inactive')
+}
+
+entity "Citizens" as citizens {
+  * id : INT <<PK>>
+  --
+  * citizen_code : VARCHAR(30)
+  * full_name : VARCHAR(200)
+  * id_number : VARCHAR(30)
+  * gender : ENUM('Male','Female','Other')
+  * date_of_birth : DATE
+  * age : INT
+  * ward : VARCHAR(60)
+  * sub_county : VARCHAR(60)
+  household_id : INT <<FK>>
+  * status : ENUM('Active','Deceased','Migrated','Inactive')
+}
+
+entity "Households" as households {
+  * id : INT <<PK>>
+  --
+  * household_code : VARCHAR(30)
+  head_of_household_id : INT <<FK>>
+  * ward : VARCHAR(60)
+  * sub_county : VARCHAR(60)
+  * family_type : ENUM('Nuclear','Extended','Single Parent','Other')
+  monthly_income : DECIMAL(10,2)
+  * status : ENUM('Active','Inactive')
+}
+
+entity "Health Services" as health_services {
+  * id : INT <<PK>>
+  --
+  * citizen_id : INT <<FK>>
+  * service_type : ENUM('Routine Checkup','Emergency Care','Vaccination','Maternal Care','Child Health','Chronic Disease','Other')
+  service_description : TEXT
+  facility_name : VARCHAR(150)
+  * service_date : DATE
+  provider_name : VARCHAR(150)
+  * status : ENUM('Scheduled','Completed','Cancelled','No Show')
+  created_by : INT <<FK>>
+}
+
+entity "Appointment Requests" as appointment_requests {
+  * id : INT <<PK>>
+  --
+  * citizen_id : INT <<FK>>
+  * service_category : ENUM('Health','Education','Social Support')
+  facility_id : INT
+  * service_type : VARCHAR(100)
+  * preferred_date : DATE
+  preferred_time : TIME
+  * urgency : ENUM('Low','Medium','High','Emergency')
+  * status : ENUM('Pending','Approved','Rejected','Completed','Cancelled')
+  approved_by : INT <<FK>>
+}
+
+' Relationships
+households ||--o{ citizens : contains
+citizens ||--o{ health_services : receives
+citizens ||--o{ appointment_requests : books
+users ||--o{ health_services : creates
+users ||--o{ appointment_requests : approves
+
+' Notes for foreign keys
+note left of citizens
+  FK: household_id → households.id
+end note
+
+note right of health_services
+  FK: citizen_id → citizens.id
+  FK: created_by → users.id
+end note
+
+note right of appointment_requests
+  FK: citizen_id → citizens.id
+  FK: approved_by → users.id
+end note
+
+@enduml

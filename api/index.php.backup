@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+// Minimal test
+if ($_SERVER['REQUEST_URI'] === '/api/test') {
+    header('Content-Type: application/json');
+    echo json_encode(['message' => 'API is working', 'timestamp' => time()]);
+    exit;
+}
+
+echo "Not found";
+exit;
+$router->post('/admin/appointment-requests/{id}/approve', [App\Controllers\AdminAppointmentsController::class, 'approveAppointment'], true);
+$router->post('/admin/appointment-requests/{id}/reject', [App\Controllers\AdminAppointmentsController::class, 'rejectAppointment'], true);
+
+$router->get('/settings', [App\Controllers\SettingsController::class, 'get'], true);
+$router->put('/settings', [App\Controllers\SettingsController::class, 'update'], true);
+
+try {
+    $router->dispatch();
+} catch (Throwable $e) {
+    Response::json(['error' => 'server_error'], 500);
+}

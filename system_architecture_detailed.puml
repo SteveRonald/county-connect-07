@@ -1,0 +1,152 @@
+@startuml System Architecture
+title County Connect System Architecture - Detailed View
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle uml2
+
+' Presentation Layer - React Frontend
+package "Presentation Layer (React/TypeScript)" as PL #LightBlue {
+    component [Index Page] as Index
+    component [Auth Pages\n(Login/Register/Forgot Password)] as AuthPages
+    component [Dashboard Pages\n(Dashboard/Citizens/Demographics)] as DashboardPages
+    component [Service Pages\n(Health/Education/Social Services)] as ServicePages
+    component [Reports Page] as ReportsPage
+    component [User Management] as UserMgmt
+    component [Settings Page] as SettingsPage
+    component [UI Components\n(Forms/Tables/Charts)] as UIComponents
+    component [RequireAuth HOC] as AuthHOC
+}
+
+' Application Layer - PHP Backend
+package "Application Layer (PHP API)" as AL #LightGreen {
+    component [Router\n(URL Routing)] as Router
+    component [AuthController\n(login/register/me)] as AuthCtrl
+    component [CitizensController\n(CRUD operations)] as CitizenCtrl
+    component [HealthController\n(health services)] as HealthCtrl
+    component [EducationController\n(education services)] as EducationCtrl
+    component [SocialServicesController\n(social support)] as SocialCtrl
+    component [ReportsController\n(report generation)] as ReportsCtrl
+    component [UsersController\n(user management)] as UsersCtrl
+    component [DashboardController\n(analytics/summary)] as DashboardCtrl
+    component [JWT Middleware\n(token validation)] as JWTMiddleware
+    component [Request/Response\n(HTTP handling)] as HTTPHandler
+}
+
+' Data Layer - MySQL Database
+package "Data Layer (MySQL Database)" as DL #LightYellow {
+    database "county_connect" as DB {
+        component [users\n(id, name, email, role, status)] as UsersTable
+        component [citizens\n(id, citizen_code, full_name, demographics)] as CitizensTable
+        component [households\n(id, household_code, head_of_household)] as HouseholdsTable
+        component [health_services\n(id, citizen_id, service_type, facility)] as HealthServicesTable
+        component [immunizations\n(id, citizen_id, vaccine_name, dose)] as ImmunizationsTable
+        component [education_services\n(id, citizen_id, institution, grade)] as EducationServicesTable
+        component [social_services\n(id, citizen_id, program_name, amount)] as SocialServicesTable
+        component [health_facilities\n(id, name, type, level, capacity)] as HealthFacilitiesTable
+        component [education_facilities\n(id, name, type, capacity)] as EducationFacilitiesTable
+        component [appointment_requests\n(id, citizen_id, service_category, status)] as AppointmentsTable
+        component [reports\n(id, name, type, parameters, file_path)] as ReportsTable
+        component [notifications\n(id, user_id, title, message, type)] as NotificationsTable
+        component [audit_logs\n(id, user_id, action, table_name)] as AuditLogsTable
+        component [settings\n(id, setting_key, setting_value)] as SettingsTable
+    }
+}
+
+' Infrastructure Layer
+package "Infrastructure Layer" as IL #LightGray {
+    component [XAMPP Server\n(Apache + PHP + MySQL)] as XAMPP
+    component [File System\n(Report storage)] as FileSystem
+    component [Email Service\n(Password reset notifications)] as EmailService
+    component [Session Management\n(JWT tokens)] as SessionMgmt
+    component [Error Logging\n(System logs)] as ErrorLogging
+}
+
+' External Systems
+package "External Systems" as ES #LightOrange {
+    component [Government Systems\n(Citizen registries)] as GovSystems
+    component [Health Information Systems] as HealthSystems
+    component [Education Management Systems] as EducationSystems
+    component [Social Services Databases] as SocialDatabases
+}
+
+' User Actors
+actor "County Administrators" as Admins
+actor "County Staff" as Staff
+actor "Citizens" as Citizens
+actor "Government Officials" as Officials
+
+' User interactions with frontend
+Admins --> AuthPages : Login/Register
+Staff --> AuthPages : Login/Register
+Citizens --> Index : Public Access
+Admins --> DashboardPages : Admin Dashboard
+Staff --> DashboardPages : Staff Dashboard
+Staff --> ServicePages : Manage Services
+Staff --> ReportsPage : Generate Reports
+Admins --> UserMgmt : User Administration
+Admins --> SettingsPage : System Settings
+
+' Frontend to Backend API calls
+AuthPages --> AuthCtrl : POST /auth/login\nPOST /auth/register
+DashboardPages --> DashboardCtrl : GET /dashboard/summary
+ServicePages --> CitizenCtrl : GET/POST/PUT/DELETE /citizens
+ServicePages --> HealthCtrl : GET /health/summary
+ServicePages --> EducationCtrl : GET /education/summary
+ServicePages --> SocialCtrl : GET /social-services/summary
+ReportsPage --> ReportsCtrl : GET /reports/templates\nPOST /reports/generate
+UserMgmt --> UsersCtrl : GET/POST/PUT/DELETE /users
+SettingsPage --> SettingsPage : GET/PUT /settings
+
+' Authentication middleware
+AuthCtrl --> JWTMiddleware : Token Generation
+CitizenCtrl --> JWTMiddleware : Token Validation
+HealthCtrl --> JWTMiddleware : Token Validation
+EducationCtrl --> JWTMiddleware : Token Validation
+SocialCtrl --> JWTMiddleware : Token Validation
+ReportsCtrl --> JWTMiddleware : Token Validation
+UsersCtrl --> JWTMiddleware : Token Validation
+
+' Backend to Database operations
+AuthCtrl --> UsersTable : User authentication queries
+CitizenCtrl --> CitizensTable : Citizen CRUD operations
+CitizenCtrl --> HouseholdsTable : Household relationships
+HealthCtrl --> HealthServicesTable : Health service records
+HealthCtrl --> ImmunizationsTable : Vaccination records
+HealthCtrl --> HealthFacilitiesTable : Facility information
+EducationCtrl --> EducationServicesTable : Education records
+EducationCtrl --> EducationFacilitiesTable : School information
+SocialCtrl --> SocialServicesTable : Social support records
+ReportsCtrl --> ReportsTable : Report generation & storage
+UsersCtrl --> UsersTable : User management
+DashboardCtrl --> DB : Analytics queries across all tables
+
+' Infrastructure connections
+XAMPP --> Router : Serve PHP application
+Router --> HTTPHandler : Route requests to controllers
+ReportsCtrl --> FileSystem : Store generated reports
+AuthCtrl --> EmailService : Send password reset emails
+SessionMgmt --> JWTMiddleware : Token storage/validation
+ErrorLogging --> AuditLogsTable : Log system activities
+
+' External system integrations
+HealthCtrl --> HealthSystems : Health data exchange
+EducationCtrl --> EducationSystems : Education data exchange
+SocialCtrl --> SocialDatabases : Social services data
+CitizenCtrl --> GovSystems : Citizen verification
+
+' Data relationships
+CitizensTable --> HouseholdsTable : belongs_to (household_id)
+HealthServicesTable --> CitizensTable : references (citizen_id)
+ImmunizationsTable --> CitizensTable : references (citizen_id)
+EducationServicesTable --> CitizensTable : references (citizen_id)
+SocialServicesTable --> CitizensTable : references (citizen_id)
+AppointmentsTable --> CitizensTable : references (citizen_id)
+NotificationsTable --> UsersTable : references (user_id)
+AuditLogsTable --> UsersTable : references (user_id)
+ReportsTable --> UsersTable : references (generated_by)
+
+note right of PL : React SPA with TypeScript\n- 15+ pages and components\n- Responsive UI with Tailwind CSS\n- Form validation and state management
+note right of AL : PHP MVC API\n- 10+ controllers with CRUD operations\n- JWT authentication\n- RESTful endpoints
+note right of DL : MySQL database with 15+ tables\n- Citizen management system\n- Service tracking\n- Reporting and analytics
+note right of IL : XAMPP development stack\n- Apache web server\n- PHP 8+ runtime\n- MySQL 8+ database\n- File system storage
+@enduml

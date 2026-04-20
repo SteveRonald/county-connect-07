@@ -1,0 +1,113 @@
+@startuml Deployment Architecture
+title County Connect Deployment Architecture
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle uml2
+
+' Client Layer
+package "Client Layer" as Client #LightBlue {
+    [Web Browser] as Browser
+    note right : Chrome, Firefox, Safari, Edge\nResponsive design\nProgressive Web App ready
+}
+
+' Web Server Layer
+package "Web Server Layer" as WebServer #LightGreen {
+    [Apache HTTP Server] as Apache
+    note right : Port 80/443 (HTTP/HTTPS)\nServes static React files\nReverse proxy for API\nSSL/TLS termination
+}
+
+' Application Server Layer
+package "Application Server Layer" as AppServer #LightYellow {
+    [PHP-FPM Process Manager] as PHPFPM
+    [API Application] as APIApp
+    note right : PHP 8.1+ runtime\nFastCGI Process Manager\nAPI request processing\nSession management
+}
+
+' Database Server Layer
+package "Database Server Layer" as DBServer #LightOrange {
+    [MySQL Database Server] as MySQL
+    [Database Files] as DBFiles
+    note right : Port 3306\nInnoDB storage engine\nConnection pooling\nBackup & replication ready
+}
+
+' File Storage Layer
+package "File Storage Layer" as FileStorage #LightGray {
+    [Local File System] as LocalFS
+    [Report Files] as Reports
+    [Upload Files] as Uploads
+    note right : Document storage\nReport generation output\nUser uploaded files\nAccess controlled
+}
+
+' External Services
+package "External Services" as External #Pink {
+    [Email Service] as Email
+    [SMS Gateway] as SMS
+    [Government APIs] as GovAPI
+    note right : SMTP for notifications\nSMS for alerts\nExternal data integration
+}
+
+' Network connections
+Browser --> Apache : HTTPS (443)\nStatic files + API calls
+Apache --> PHPFPM : FastCGI\nAPI requests
+PHPFPM --> MySQL : MySQL Protocol (3306)\nDatabase queries
+PHPFPM --> LocalFS : File I/O\nRead/write files
+PHPFPM --> Email : SMTP (587)\nSend emails
+PHPFPM --> SMS : HTTPS\nSend SMS
+PHPFPM --> GovAPI : HTTPS\nExternal data
+
+' Data flow labels
+Browser ..> Apache : "GET /index.html\nPOST /api/auth/login"
+Apache ..> PHPFPM : "API request routing"
+PHPFPM ..> MySQL : "SELECT * FROM users\nINSERT INTO citizens"
+PHPFPM ..> LocalFS : "Store report.pdf\nRead config.json"
+
+' Deployment environment
+package "Development Environment" as Dev #LightCyan {
+    component [Localhost] as LocalDev
+    note right : XAMPP/WAMP/MAMP\nHot reload development\nDebug logging enabled\nLocal database
+}
+
+package "Production Environment" as Prod #LightRed {
+    component [Cloud Server] as CloudProd
+    note right : VPS/Cloud instance\nLoad balancer ready\nSSL certificates\nMonitoring & logging
+}
+
+' Development connections
+LocalDev --> Apache : Development server
+LocalDev --> MySQL : Local database
+LocalDev --> LocalFS : Local file storage
+
+' Production connections
+CloudProd --> Apache : Production server
+CloudProd --> MySQL : Production database
+CloudProd --> LocalFS : Production storage
+
+' Configuration notes
+note as Config
+**Server Configuration:**
+Apache: mod_rewrite, mod_ssl, mod_php
+PHP: php.ini optimized, extensions loaded
+MySQL: max_connections=100, innodb_buffer_pool_size
+Security: Firewall rules, SSL certificates, CORS policy
+end note
+
+' Performance notes
+note as Performance
+**Performance Considerations:**
+- Apache caching headers
+- PHP opcode caching (OPcache)
+- MySQL query optimization
+- File system permissions
+- CDN ready for static assets
+end note
+
+' Monitoring notes
+note as Monitoring
+**Monitoring & Logging:**
+- Apache access/error logs
+- PHP error logging
+- MySQL slow query log
+- Application audit trails
+- Health check endpoints
+end note
+@enduml
