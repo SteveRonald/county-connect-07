@@ -19,7 +19,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="h-screen flex w-full overflow-hidden">
         <AppSidebar />
         <SidebarInset className="flex flex-col">
           <header className="h-14 border-b bg-card flex items-center px-4 gap-4 sticky top-0 z-10">
@@ -30,7 +30,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               Logout
             </Button>
           </header>
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-6 overflow-y-auto">
             {children}
           </main>
         </SidebarInset>

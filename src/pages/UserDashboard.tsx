@@ -729,9 +729,9 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
       {/* Header */}
-      <header className="border-b bg-card px-6 py-4 flex items-center justify-between">
+      <header className="h-[73px] border-b bg-card px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src="/images/logo.png" alt="CPMS" className="h-9 w-9" />
           <div className="flex flex-col leading-tight">
@@ -753,9 +753,9 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex h-[calc(100vh-73px)]">
         {/* Sidebar */}
-        <aside className="w-64 border-r bg-card min-h-[calc(100vh-73px)] p-4">
+        <aside className="w-64 border-r bg-card p-4 overflow-y-auto">
           <nav className="space-y-2">
             <Button
               variant={activeTab === "overview" ? "default" : "ghost"}
@@ -801,7 +801,7 @@ export default function UserDashboard() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-6">

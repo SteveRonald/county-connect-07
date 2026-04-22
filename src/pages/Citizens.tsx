@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Filter, Download, Eye, Edit, MoreHorizontal, FileSpreadsheet } from "lucide-react";
+import { Search, Filter, Download, Eye, Edit, MoreHorizontal, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { apiUrl } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface Citizen {
   id: number;
@@ -19,40 +21,187 @@ interface Citizen {
   gender: string;
   age: number;
   ward: string;
+  sub_county?: string | null;
   status: string;
 }
+
+const fallbackConstituencyWards: Record<string, string[]> = {
+  Soy: ["Kuinet/Kapsuswa", "Segero/Barsombe", "Kipsomba", "Soy", "Moi's Bridge"],
+  Turbo: ["Ngenyilel", "Tapsagoi", "Kamagut", "Kiplombe", "Kapsaos"],
+  Moiben: ["Tembelio", "Sergoit", "Karuna/Meibeki", "Moiben", "Kimumu"],
+  Ainabkoi: ["Kapsoya", "Kaptagat", "Ainabkoi/Olare"],
+  Kapseret: ["Simat/Kapseret", "Kipkenyo", "Ngeria", "Megun"],
+  Kesses: ["Racecourse", "Cheptiret/Kipchamo", "Tulwet/Chuiyat", "Tarakwa"],
+};
 
 export default function Citizens() {
   const [searchTerm, setSearchTerm] = useState("");
   const [wardFilter, setWardFilter] = useState("all");
   const [citizens, setCitizens] = useState<Citizen[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCitizen, setSelectedCitizen] = useState<Citizen | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    id_number: "",
+    gender: "",
+    age: "",
+    county: "Uasin Gishu",
+    constituency: "",
+    ward: "",
+    status: "",
+  });
+
+  const constituencyWardMap = (() => {
+    const map: Record<string, Set<string>> = {};
+    citizens.forEach((citizen) => {
+      const constituency = (citizen.sub_county || "").trim();
+      const ward = (citizen.ward || "").trim();
+      if (!constituency || !ward) {
+        return;
+      }
+      if (!map[constituency]) {
+        map[constituency] = new Set<string>();
+      }
+      map[constituency].add(ward);
+    });
+
+    const merged: Record<string, string[]> = {};
+    Object.entries(fallbackConstituencyWards).forEach(([constituency, wards]) => {
+      merged[constituency] = [...wards];
+    });
+
+    Object.entries(map).forEach(([constituency, wards]) => {
+      const existing = new Set(merged[constituency] || []);
+      wards.forEach((ward) => existing.add(ward));
+      merged[constituency] = Array.from(existing);
+    });
+
+    return merged;
+  })();
+
+  const constituencyOptions = Object.keys(constituencyWardMap);
+
+  const fetchCitizens = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const response = await fetch(apiUrl("citizens"), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCitizens(data.data || []);
+      } else {
+        toast({ title: "Error", description: "Failed to fetch citizens", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error fetching citizens:", error);
+      toast({ title: "Error", description: "Failed to load citizens data", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchCitizens = async () => {
-      try {
-        setLoading(true);
-        const token = getAuthToken();
-        const response = await fetch(apiUrl("citizens"), {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setCitizens(data.data || []);
-        } else {
-          toast({ title: "Error", description: "Failed to fetch citizens", variant: "destructive" });
-        }
-      } catch (error) {
-        console.error("Error fetching citizens:", error);
-        toast({ title: "Error", description: "Failed to load citizens data", variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCitizens();
   }, []);
+
+  const handleViewCitizen = (citizen: Citizen) => {
+    setSelectedCitizen(citizen);
+    setShowViewDialog(true);
+  };
+
+  const handleOpenEdit = (citizen: Citizen) => {
+    const existingConstituency = (citizen.sub_county || "").trim();
+    const inferredConstituency = Object.entries(constituencyWardMap).find(([, wards]) => wards.includes(citizen.ward))?.[0] || "Soy";
+    const constituency = existingConstituency || inferredConstituency;
+    setSelectedCitizen(citizen);
+    setEditForm({
+      full_name: citizen.full_name,
+      id_number: citizen.id_number,
+      gender: citizen.gender,
+      age: String(citizen.age),
+      county: "Uasin Gishu",
+      constituency,
+      ward: citizen.ward,
+      status: citizen.status,
+    });
+    setShowEditDialog(true);
+  };
+
+  const updateCitizen = async (citizenId: number, payload: Record<string, string | number>) => {
+    const token = getAuthToken();
+    const response = await fetch(apiUrl(`citizens/${citizenId}`), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error || "Failed to update citizen");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedCitizen) {
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      await updateCitizen(selectedCitizen.id, {
+        full_name: editForm.full_name.trim(),
+        id_number: editForm.id_number.trim(),
+        gender: editForm.gender.trim(),
+        age: Number(editForm.age),
+        sub_county: editForm.constituency.trim(),
+        ward: editForm.ward.trim(),
+        status: editForm.status.trim(),
+      });
+
+      toast({
+        title: "Citizen Updated",
+        description: `${editForm.full_name} was updated successfully.`,
+      });
+
+      setShowEditDialog(false);
+      setSelectedCitizen(null);
+      await fetchCitizens();
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleMarkDeceased = async (citizen: Citizen) => {
+    try {
+      await updateCitizen(citizen.id, { status: "Deceased" });
+      toast({
+        title: "Status Updated",
+        description: `${citizen.full_name} has been marked as Deceased.`,
+      });
+      await fetchCitizens();
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error?.message || "Unable to mark citizen as deceased.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredCitizens = citizens.filter((citizen) => {
     const matchesSearch = 
@@ -194,14 +343,20 @@ export default function Citizens() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewCitizen(citizen)}>
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEdit(citizen)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
+                              {citizen.status !== "Deceased" ? (
+                                <DropdownMenuItem onClick={() => handleMarkDeceased(citizen)}>
+                                  <AlertTriangle className="w-4 h-4 mr-2" />
+                                  Mark as Deceased
+                                </DropdownMenuItem>
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -229,6 +384,120 @@ export default function Citizens() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Citizen Details</DialogTitle>
+            <DialogDescription>View the selected citizen record.</DialogDescription>
+          </DialogHeader>
+          {selectedCitizen ? (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><span className="font-medium">Citizen ID:</span> {selectedCitizen.citizen_code}</div>
+              <div><span className="font-medium">Full Name:</span> {selectedCitizen.full_name}</div>
+              <div><span className="font-medium">ID Number:</span> {selectedCitizen.id_number}</div>
+              <div><span className="font-medium">Gender:</span> {selectedCitizen.gender}</div>
+              <div><span className="font-medium">Age:</span> {selectedCitizen.age}</div>
+              <div><span className="font-medium">Ward:</span> {selectedCitizen.ward}</div>
+              <div><span className="font-medium">Status:</span> {selectedCitizen.status}</div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowViewDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Citizen</DialogTitle>
+            <DialogDescription>Update citizen details and save changes.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="edit-full-name">Full Name</Label>
+              <Input id="edit-full-name" value={editForm.full_name} onChange={(e) => setEditForm((prev) => ({ ...prev, full_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label htmlFor="edit-id-number">ID Number</Label>
+              <Input id="edit-id-number" value={editForm.id_number} onChange={(e) => setEditForm((prev) => ({ ...prev, id_number: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit-gender">Gender</Label>
+                <Input id="edit-gender" value={editForm.gender} onChange={(e) => setEditForm((prev) => ({ ...prev, gender: e.target.value }))} />
+              </div>
+              <div>
+                <Label htmlFor="edit-age">Age</Label>
+                <Input id="edit-age" type="number" min={0} value={editForm.age} onChange={(e) => setEditForm((prev) => ({ ...prev, age: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit-ward">Ward</Label>
+                <Select
+                  value={editForm.ward || undefined}
+                  onValueChange={(value) => setEditForm((prev) => ({ ...prev, ward: value }))}
+                >
+                  <SelectTrigger id="edit-ward">
+                    <SelectValue placeholder="Select ward" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(constituencyWardMap[editForm.constituency] || []).map((ward) => (
+                      <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-status">Status</Label>
+                <Input id="edit-status" value={editForm.status} onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit-county">County</Label>
+                <Select value={editForm.county} onValueChange={(value) => setEditForm((prev) => ({ ...prev, county: value }))}>
+                  <SelectTrigger id="edit-county">
+                    <SelectValue placeholder="Select county" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Uasin Gishu">Uasin Gishu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-constituency">Constituency</Label>
+                <Select
+                  value={editForm.constituency || undefined}
+                  onValueChange={(value) => {
+                    const wards = constituencyWardMap[value] || [];
+                    setEditForm((prev) => ({
+                      ...prev,
+                      constituency: value,
+                      ward: wards.includes(prev.ward) ? prev.ward : (wards[0] || ""),
+                    }));
+                  }}
+                >
+                  <SelectTrigger id="edit-constituency">
+                    <SelectValue placeholder="Select constituency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {constituencyOptions.map((option) => (
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={updating}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={updating}>{updating ? "Saving..." : "Save Changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

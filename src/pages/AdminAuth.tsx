@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "@/components/ui/use-toast";
 import { setAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function AdminAuth() {
   const [email, setEmail] = useState("");
@@ -73,9 +73,7 @@ export default function AdminAuth() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-            <Shield className="w-6 h-6 text-primary" />
-          </div>
+          <img src="/images/logo.png" alt="CPMS" className="mx-auto mb-4 h-14 w-14 object-contain" />
           <CardTitle>Admin Login</CardTitle>
           <CardDescription>Sign in to access the admin dashboard</CardDescription>
         </CardHeader>

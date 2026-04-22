@@ -47,6 +47,7 @@ final class CitizensController
         self::ensureOwnershipTable($pdo);
         $hasHouseholdId = self::hasColumn($pdo, 'citizens', 'household_id');
         $hasCitizenHouseholds = self::hasTable($pdo, 'citizen_households');
+        $hasSubCounty = self::hasColumn($pdo, 'citizens', 'sub_county');
 
         $forceMine = strtolower($scope) === 'mine';
         $isAdmin = self::isAdmin($user);
@@ -78,7 +79,8 @@ final class CitizensController
             : ($hasCitizenHouseholds
                 ? '(SELECT ch.household_id FROM citizen_households ch WHERE ch.citizen_id = citizens.id LIMIT 1) AS household_id'
                 : 'NULL AS household_id');
-        $sql = "SELECT id, citizen_code, full_name, id_number, gender, age, ward, {$householdSelect}, status, created_at
+        $subCountySelect = $hasSubCounty ? 'sub_county' : 'NULL AS sub_county';
+        $sql = "SELECT id, citizen_code, full_name, id_number, gender, age, ward, {$subCountySelect}, {$householdSelect}, status, created_at
                 FROM citizens
                 {$whereSql}
                 ORDER BY id DESC
@@ -111,12 +113,14 @@ final class CitizensController
 
         $hasHouseholdId = self::hasColumn($pdo, 'citizens', 'household_id');
         $hasCitizenHouseholds = self::hasTable($pdo, 'citizen_households');
+        $hasSubCounty = self::hasColumn($pdo, 'citizens', 'sub_county');
         $householdSelect = $hasHouseholdId
             ? 'household_id'
             : ($hasCitizenHouseholds
                 ? '(SELECT ch.household_id FROM citizen_households ch WHERE ch.citizen_id = citizens.id LIMIT 1) AS household_id'
                 : 'NULL AS household_id');
-        $stmt = $pdo->prepare('SELECT id, citizen_code, full_name, id_number, gender, age, ward, ' . $householdSelect . ', status, created_at FROM citizens WHERE id = ?');
+        $subCountySelect = $hasSubCounty ? 'sub_county' : 'NULL AS sub_county';
+        $stmt = $pdo->prepare('SELECT id, citizen_code, full_name, id_number, gender, age, ward, ' . $subCountySelect . ', ' . $householdSelect . ', status, created_at FROM citizens WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
 
@@ -242,6 +246,7 @@ final class CitizensController
         $body = Request::json();
         $fields = [];
         $args = [];
+        $hasSubCounty = self::hasColumn($pdo, 'citizens', 'sub_county');
 
         $map = [
             'citizen_code' => 'citizen_code',
@@ -252,6 +257,10 @@ final class CitizensController
             'ward' => 'ward',
             'status' => 'status',
         ];
+
+        if ($hasSubCounty) {
+            $map['sub_county'] = 'sub_county';
+        }
 
         foreach ($map as $k => $col) {
             if (!array_key_exists($k, $body)) {

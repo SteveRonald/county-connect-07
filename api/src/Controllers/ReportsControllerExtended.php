@@ -319,52 +319,206 @@ final class ReportsControllerExtended
             mkdir(dirname($filePath), 0755, true);
         }
         
-        // Simple PDF generation using TCPDF (if available) or fallback to HTML
+        $title = ucfirst(str_replace('_', ' ', $type)) . ' Report';
+        $generatedAt = date('Y-m-d H:i:s');
+        $department = isset($filters['department']) && is_string($filters['department']) ? $filters['department'] : 'All Departments';
+        $period = isset($filters['period']) && is_string($filters['period']) ? $filters['period'] : 'Default';
+
+        // Simple PDF generation using TCPDF (if available) or native minimal PDF fallback.
         if (class_exists('TCPDF')) {
             $pdfClass = '\\TCPDF';
             $pdf = new $pdfClass();
             $pdf->AddPage();
-            $pdf->SetFont('helvetica', '', 12);
-            
-            $title = ucfirst($type) . ' Report';
-            $pdf->Cell(0, 10, $title, 0, 1, 'C');
-            $pdf->Ln(10);
-            
-            // Add data table
-            foreach ($data as $row) {
-                $line = implode(' | ', $row);
-                $pdf->Cell(0, 8, $line, 0, 1);
+            $pdf->SetAutoPageBreak(true, 15);
+
+            $logoPath = self::resolveLogoPath();
+            if ($logoPath !== null) {
+                $pdf->Image($logoPath, 15, 12, 16, 16, 'PNG');
+            }
+
+            $pdf->SetFont('helvetica', 'B', 14);
+            $pdf->Cell(0, 8, 'CPMS - County Government', 0, 1, 'L', false, '', 0, false, 'T', 'M');
+            $pdf->SetFont('helvetica', 'B', 12);
+            $pdf->Cell(0, 8, $title, 0, 1, 'L');
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(0, 6, 'Generated: ' . $generatedAt . ' | Department: ' . $department . ' | Period: ' . $period, 0, 1, 'L');
+            $pdf->Ln(4);
+
+            if (!empty($data)) {
+                $headers = array_keys($data[0]);
+                $tableHtml = '<table border="1" cellpadding="4" cellspacing="0" width="100%"><thead><tr style="background-color:#f0f0f0;">';
+                foreach ($headers as $header) {
+                    $tableHtml .= '<th><b>' . htmlspecialchars(ucfirst(str_replace('_', ' ', (string) $header)), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</b></th>';
+                }
+                $tableHtml .= '</tr></thead><tbody>';
+
+                foreach ($data as $row) {
+                    $tableHtml .= '<tr>';
+                    foreach ($row as $value) {
+                        $tableHtml .= '<td>' . htmlspecialchars(self::normalizeReportCellValue($value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
+                    }
+                    $tableHtml .= '</tr>';
+                }
+                $tableHtml .= '</tbody></table>';
+
+                $pdf->writeHTML($tableHtml, true, false, true, false, '');
+            } else {
+                $pdf->Cell(0, 8, 'No data available for the selected report filters.', 0, 1, 'L');
             }
             
             $pdf->Output($filePath, 'F');
         } else {
-            // Fallback: Create simple HTML file (rename to .pdf for demo)
-            $html = '<html><head><title>' . ucfirst($type) . ' Report</title></head><body>';
-            $html .= '<h1>' . ucfirst($type) . ' Report</h1>';
-            $html .= '<p>Generated on: ' . date('Y-m-d H:i:s') . '</p>';
-            $html .= '<table border="1">';
-            
+            $lines = [
+                'CPMS - County Government',
+                $title,
+                'Generated: ' . $generatedAt,
+                'Department: ' . $department,
+                'Period: ' . $period,
+                '',
+            ];
+
             if (!empty($data)) {
-                $html .= '<tr>';
-                foreach (array_keys($data[0]) as $header) {
-                    $html .= '<th>' . ucfirst(str_replace('_', ' ', $header)) . '</th>';
-                }
-                $html .= '</tr>';
-                
+                $headers = array_map(
+                    static fn($header): string => ucfirst(str_replace('_', ' ', (string) $header)),
+                    array_keys($data[0])
+                );
+                $rows = [];
+
                 foreach ($data as $row) {
-                    $html .= '<tr>';
+                    $cells = [];
                     foreach ($row as $value) {
-                        $html .= '<td>' . htmlspecialchars($value) . '</td>';
+                        $cells[] = self::normalizeReportCellValue($value);
                     }
-                    $html .= '</tr>';
+                    $rows[] = $cells;
                 }
+
+                $lines = array_merge($lines, self::buildTextTableLines($headers, $rows, 150));
+            } else {
+                $lines[] = 'No data available for the selected report filters.';
             }
-            
-            $html .= '</table></body></html>';
-            file_put_contents($filePath, $html);
+
+            $pdfBinary = self::buildSimplePdf($lines);
+            file_put_contents($filePath, $pdfBinary);
         }
         
         return $filename;
+    }
+
+    private static function normalizeReportCellValue(mixed $value): string
+    {
+        if (is_array($value) || is_object($value)) {
+            return (string) json_encode($value);
+        }
+
+        if ($value === null) {
+            return '';
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * @param array<int,string> $headers
+     * @param array<int,array<int,string>> $rows
+     * @return array<int,string>
+     */
+    private static function buildTextTableLines(array $headers, array $rows, int $maxWidth = 150): array
+    {
+        $colCount = max(1, count($headers));
+        $separator = ' | ';
+        $separatorWidth = strlen($separator) * ($colCount - 1);
+        $colWidth = max(10, (int) floor(($maxWidth - $separatorWidth) / $colCount));
+
+        $formatRow = static function (array $cells) use ($colCount, $colWidth, $separator): string {
+            $out = [];
+            for ($i = 0; $i < $colCount; $i++) {
+                $cell = (string) ($cells[$i] ?? '');
+                if (strlen($cell) > $colWidth) {
+                    $cell = substr($cell, 0, max(0, $colWidth - 3)) . '...';
+                }
+                $out[] = str_pad($cell, $colWidth, ' ');
+            }
+            return implode($separator, $out);
+        };
+
+        $lines = [];
+        $lines[] = $formatRow($headers);
+        $lines[] = str_repeat('-', min($maxWidth, strlen($lines[0])));
+        foreach ($rows as $row) {
+            $lines[] = $formatRow($row);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param array<int,string> $lines
+     */
+    private static function buildSimplePdf(array $lines): string
+    {
+        $maxLines = 45;
+        $visibleLines = array_slice($lines, 0, $maxLines);
+
+        $content = "BT\n40 780 Td\n";
+
+        foreach ($visibleLines as $index => $line) {
+            if ($index === 0) {
+                $content .= "/F1 14 Tf\n16 TL\n";
+            } elseif ($index === 1) {
+                $content .= "/F1 12 Tf\n15 TL\n";
+            } elseif ($index >= 2 && $index <= 4) {
+                $content .= "/F1 10 Tf\n13 TL\n";
+            } elseif ($index === 6) {
+                $content .= "T*\n/F2 9 Tf\n12 TL\n";
+            }
+
+            $content .= '(' . self::escapePdfText($line) . ") Tj\nT*\n";
+        }
+
+        $content .= "ET\n";
+
+        $objects = [];
+        $objects[] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+        $objects[] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+        $objects[] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 6 0 R >> >> /Contents 5 0 R >>\nendobj\n";
+        $objects[] = "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+        $objects[] = "5 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n" . $content . "endstream\nendobj\n";
+        $objects[] = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [0];
+        foreach ($objects as $index => $object) {
+            $offsets[$index + 1] = strlen($pdf);
+            $pdf .= $object;
+        }
+
+        $xrefOffset = strlen($pdf);
+        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
+        $pdf .= "0000000000 65535 f \n";
+        for ($i = 1; $i <= count($objects); $i++) {
+            $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+
+        $pdf .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\n";
+        $pdf .= "startxref\n" . $xrefOffset . "\n%%EOF";
+
+        return $pdf;
+    }
+
+    private static function escapePdfText(string $text): string
+    {
+        $escaped = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
+        $escaped = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $escaped);
+        return is_string($escaped) ? $escaped : '';
+    }
+
+    private static function resolveLogoPath(): ?string
+    {
+        $logoPath = realpath(__DIR__ . '/../../../public/images/logo.png');
+        if ($logoPath === false || !file_exists($logoPath)) {
+            return null;
+        }
+        return $logoPath;
     }
 
     private static function generateExcelReport(string $type, array $data, array $filters): string

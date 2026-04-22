@@ -53,8 +53,8 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-            <img src="/images/logo.png" alt="CPMS" className="w-6 h-6" />
+          <div className="w-10 h-10 flex items-center justify-center">
+            <img src="/images/logo.png" alt="CPMS" className="w-8 h-8 object-contain" />
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-sidebar-foreground text-sm">CPMS</span>
