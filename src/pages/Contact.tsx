@@ -3,30 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { isAuthenticated } from "@/lib/auth";
+import { Mail, MapPin, Phone } from "lucide-react";
 
 export default function Contact() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isAuthenticated()) {
-      navigate("/user-dashboard", { replace: true });
-    }
-  }, [navigate]);
-
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-6xl px-6 py-14">
-        <h1 className="text-3xl font-bold tracking-tight">Contact</h1>
-        <p className="mt-4 text-muted-foreground max-w-3xl">
-          For support, onboarding, or account access, contact your county ICT department.
-        </p>
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="rounded-3xl border bg-card p-8 sm:p-10 lg:p-12">
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-muted-foreground">Contact</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Talk to the CPMS Support Team</h1>
+          <p className="mt-5 max-w-3xl text-lg text-muted-foreground">
+            For support, onboarding, or account access requests, reach out to your county ICT department.
+          </p>
+        </div>
 
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          <div className="rounded-2xl border bg-card p-6">
-            <h2 className="font-semibold">Send a message</h2>
+        <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_0.85fr] items-start">
+          <div className="rounded-2xl border bg-card p-6 sm:p-7 shadow-sm">
+            <h2 className="text-xl font-semibold">Send a message</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Fill out the form and our ICT team will respond to you.</p>
             <form
               className="mt-4 space-y-4"
               onSubmit={(e) => {
@@ -55,13 +49,28 @@ export default function Contact() {
             </form>
           </div>
 
-          <div className="rounded-2xl border bg-card p-6">
-            <h2 className="font-semibold">Support contacts</h2>
-            <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-              <p><span className="text-foreground font-medium">Email:</span> ict-support@county.go.ke</p>
-              <p><span className="text-foreground font-medium">Phone:</span> +254 700 000 000</p>
-              <p><span className="text-foreground font-medium">Office:</span> County Headquarters, ICT Directorate</p>
-              <p className="pt-2">
+          <div className="space-y-6">
+            <div className="rounded-2xl border bg-card p-6 sm:p-7 shadow-sm">
+              <h2 className="text-xl font-semibold">Support contacts</h2>
+              <div className="mt-5 space-y-4 text-sm text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-0.5 h-4 w-4 text-primary" />
+                  <p><span className="text-foreground font-medium">Email:</span> ict-support@county.go.ke</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-0.5 h-4 w-4 text-primary" />
+                  <p><span className="text-foreground font-medium">Phone:</span> +254 700 000 000</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 text-primary" />
+                  <p><span className="text-foreground font-medium">Office:</span> County Headquarters, ICT Directorate</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border bg-muted/40 p-6 sm:p-7">
+              <h3 className="font-semibold">Access Notice</h3>
+              <p className="mt-3 text-sm text-muted-foreground">
                 Access to CPMS is restricted to authorized users. If you need an account, submit a request above.
               </p>
             </div>

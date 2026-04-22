@@ -1,20 +1,11 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { isAuthenticated } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Users, Heart, GraduationCap, HandHeart, BarChart3, Shield, Database, Activity, Settings, Globe, MapPin, Clock, CheckCircle } from "lucide-react";
 
 export default function About() {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isAuthenticated()) {
-      navigate("/user-dashboard", { replace: true });
-    }
-  }, [navigate]);
 
   const modules = [
     {
@@ -76,20 +67,21 @@ export default function About() {
 
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-6xl px-6 py-14">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold tracking-tight mb-4">About CPMS</h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            The Centralized Population Management System (CPMS) is a comprehensive digital platform 
-            designed to transform how county governments manage citizen services and administrative operations.
+        <div className="mb-14 rounded-3xl border bg-card p-8 sm:p-10 lg:p-12">
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-muted-foreground">About CPMS</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Digital Infrastructure for Better County Services</h1>
+          <p className="mt-5 max-w-4xl text-lg leading-8 text-muted-foreground">
+            The Centralized Population Management System is a shared operations platform that helps county teams coordinate
+            resident records, service delivery, and planning from one trusted source of data.
           </p>
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+        <div className="mb-16 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
-            <Card key={index} className="text-center">
+            <Card key={index} className="text-center shadow-sm">
               <CardContent className="pt-6">
                 <stat.icon className="w-8 h-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{stat.value}</div>
@@ -102,8 +94,8 @@ export default function About() {
         {/* Key Features */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-8">Key Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <Card className="h-full shadow-sm">
               <CardHeader>
                 <Database className="w-8 h-8 text-blue-500 mb-2" />
                 <CardTitle>Centralized Database</CardTitle>
@@ -114,7 +106,7 @@ export default function About() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="h-full shadow-sm">
               <CardHeader>
                 <Activity className="w-8 h-8 text-green-500 mb-2" />
                 <CardTitle>Real-Time Updates</CardTitle>
@@ -125,7 +117,7 @@ export default function About() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="h-full shadow-sm">
               <CardHeader>
                 <Globe className="w-8 h-8 text-purple-500 mb-2" />
                 <CardTitle>Multi-Department</CardTitle>
@@ -145,9 +137,9 @@ export default function About() {
           <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
             Our comprehensive system includes specialized modules designed to meet the unique needs of each department.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {modules.map((module, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+              <Card key={index} className="h-full hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className={`w-12 h-12 rounded-lg ${module.bgColor} flex items-center justify-center mb-4`}>
                     <module.icon className={`w-6 h-6 ${module.color}`} />
@@ -173,8 +165,8 @@ export default function About() {
         {/* Benefits Section */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-8">Why Choose CPMS?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div className="space-y-5 rounded-2xl border bg-card p-6 shadow-sm">
               <div className="flex items-start gap-3">
                 <Clock className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                 <div>
@@ -194,7 +186,7 @@ export default function About() {
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5 rounded-2xl border bg-card p-6 shadow-sm">
               <div className="flex items-start gap-3">
                 <BarChart3 className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                 <div>
@@ -218,7 +210,7 @@ export default function About() {
         </div>
 
         {/* CTA Section */}
-        <div className="text-center bg-muted/50 rounded-lg p-8">
+        <div className="text-center bg-muted/50 rounded-2xl p-8 sm:p-10">
           <h2 className="text-2xl font-bold mb-4">Ready to Transform Your County Operations?</h2>
           <p className="text-muted-foreground mb-6">
             Join other counties in modernizing their service delivery and citizen management.

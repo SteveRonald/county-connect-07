@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getAuthToken, clearAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,8 +185,6 @@ export default function UserDashboard() {
     ward: uasinGishuWardsByConstituency["Soy"][0],
     gender: "Male",
   });
-  const [statusForm, setStatusForm] = useState({ status: "", notes: "" });
-
   // New states for facilities and appointments
   const [healthFacilities, setHealthFacilities] = useState([]);
   const [educationFacilities, setEducationFacilities] = useState([]);
@@ -208,6 +206,7 @@ export default function UserDashboard() {
   });
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Filtered population based on search query
   const filteredPopulation = population.filter(person => 
@@ -558,15 +557,51 @@ export default function UserDashboard() {
       });
   };
 
-  const handleStatusChange = () => {
-    setPopulation(prev => prev.map(p => 
-      p.id === selectedResident.id ? { ...p, status: statusForm.status } : p
-    ));
-    setShowStatusModal(false);
-    toast({
-      title: "Status Changed",
-      description: `Resident status updated to ${statusForm.status}.`,
-    });
+  const handleStatusChange = async () => {
+    const residentId = Number(selectedResident?.dbId ?? 0);
+
+    if (!residentId) {
+      toast({
+        title: "Update Failed",
+        description: "Select a resident first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(apiUrl(`citizens/${residentId}`), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ status: "Deceased" }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error || "Unable to update resident status");
+      }
+
+      setPopulation((prev) => prev.map((p) => (p.dbId === residentId ? { ...p, status: "Deceased" } : p)));
+      setShowStatusModal(false);
+      setSelectedResident((prev) => (prev ? { ...prev, status: "Deceased" } : prev));
+      fetchPopulation();
+      fetchDashboard();
+
+      toast({
+        title: "Resident Marked Deceased",
+        description: `${selectedResident?.name ?? "Resident"} has been marked as deceased.`,
+      });
+    } catch (error: any) {
+      console.error("Failed to mark resident as deceased:", error);
+      toast({
+        title: "Update Failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -698,12 +733,18 @@ export default function UserDashboard() {
       {/* Header */}
       <header className="border-b bg-card px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/cpms-logo.svg" alt="CPMS" className="h-9 w-9" />
+          <img src="/images/logo.png" alt="CPMS" className="h-9 w-9" />
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold">CPMS</span>
             <span className="text-xs text-muted-foreground">User Dashboard</span>
           </div>
         </div>
+        <nav className="hidden md:flex items-center gap-6 text-sm">
+          <Link to="/user-dashboard" className={location.pathname === "/user-dashboard" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}>Dashboard</Link>
+          <Link to="/" className="text-muted-foreground hover:text-foreground">Home</Link>
+          <Link to="/about" className="text-muted-foreground hover:text-foreground">About</Link>
+          <Link to="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link>
+        </nav>
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" />
@@ -950,6 +991,11 @@ export default function UserDashboard() {
                                 }}>
                                   <Edit className="w-4 h-4 mr-2" /> Edit Details
                                 </DropdownMenuItem>
+                                {person.status !== "Deceased" ? (
+                                  <DropdownMenuItem onClick={() => { setSelectedResident(person); setShowStatusModal(true); }}>
+                                    <AlertTriangle className="w-4 h-4 mr-2" /> Mark Deceased
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {householdId ? (
                                   <DropdownMenuItem onClick={() => { setSelectedResident(person); setShowLinkModal(true); }}>
                                     <LinkIcon className="w-4 h-4 mr-2" /> Link Household
@@ -1232,9 +1278,21 @@ export default function UserDashboard() {
                             <Badge variant={person.status === "Active" ? "default" : "secondary"}>{person.status}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => { setSelectedResident(person); setShowViewModal(true); }}>
-                              <Eye className="w-4 h-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setSelectedResident(person); setShowViewModal(true); }}>
+                                  <Eye className="w-4 h-4 mr-2" /> View Profile
+                                </DropdownMenuItem>
+                                {person.status !== "Deceased" ? (
+                                  <DropdownMenuItem onClick={() => { setSelectedResident(person); setShowStatusModal(true); }}>
+                                    <AlertTriangle className="w-4 h-4 mr-2" /> Mark Deceased
+                                  </DropdownMenuItem>
+                                ) : null}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1515,34 +1573,20 @@ export default function UserDashboard() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Change Resident Status</CardTitle>
-              <CardDescription>Update resident status (death, migration, etc.)</CardDescription>
+              <CardTitle>Mark Resident as Deceased</CardTitle>
+              <CardDescription>Confirm the resident has passed away before saving this status.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                This action will update the resident status to Deceased in the system.
+              </div>
               <div>
                 <Label>Resident</Label>
                 <Input value={selectedResident.name} disabled />
               </div>
-              <div>
-                <Label>Status Change</Label>
-                <select 
-                  className="w-full p-2 border rounded"
-                  onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
-                >
-                  <option value="">Select status change</option>
-                  <option value="deceased">Deceased</option>
-                  <option value="migrated">Migrated</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="active">Active</option>
-                </select>
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <textarea className="w-full p-2 border rounded" rows={3} placeholder="Enter notes..."></textarea>
-              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowStatusModal(false)}>Cancel</Button>
-                <Button onClick={handleStatusChange}>Update Status</Button>
+                <Button variant="destructive" onClick={handleStatusChange}>Mark Deceased</Button>
               </div>
             </CardContent>
           </Card>

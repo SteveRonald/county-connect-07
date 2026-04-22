@@ -88,9 +88,7 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4">
-            <img src="/cpms-logo.svg" alt="CPMS" className="w-9 h-9" />
-          </div>
+          <img src="/images/logo.png" alt="CPMS" className="w-12 h-12 mx-auto mb-4 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">CPMS</h1>
           <p className="text-muted-foreground">Centralized Population Management System</p>
         </div>

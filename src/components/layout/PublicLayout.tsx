@@ -1,38 +1,36 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { isAuthenticated } from "@/lib/auth";
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const loggedIn = isAuthenticated();
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/cpms-logo.svg" alt="CPMS" className="h-9 w-9" />
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold">CPMS</span>
-              <span className="text-xs text-muted-foreground">County Government</span>
-            </div>
+      <header className="sticky top-0 z-40 border-b border-[#d8c9a6] bg-[#f4efe3]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f4efe3]/90">
+        <div className="mx-auto grid h-24 max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-6 px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center" aria-label="CPMS home">
+            <img src="/images/logo.png" alt="CPMS" className="h-16 w-16 object-contain" />
           </Link>
 
-          <nav className="flex-1 flex items-center gap-4 text-sm">
-            <Link to="/" className="text-muted-foreground hover:text-foreground">Home</Link>
-            <Link to="/about" className="text-muted-foreground hover:text-foreground">About</Link>
-            <Link to="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link>
+          <nav className="hidden md:flex items-center justify-center gap-8 text-sm">
+            {loggedIn ? (
+              <Link to="/user-dashboard" className="text-[#6a5a3f] transition-colors hover:text-[#3f3524]">Dashboard</Link>
+            ) : null}
+            <Link to="/" className="text-[#6a5a3f] transition-colors hover:text-[#3f3524]">Home</Link>
+            <Link to="/about" className="text-[#6a5a3f] transition-colors hover:text-[#3f3524]">About</Link>
+            <Link to="/contact" className="text-[#6a5a3f] transition-colors hover:text-[#3f3524]">Contact</Link>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Button onClick={() => navigate("/auth?mode=login")}>
-              Login
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/auth?mode=register")}>
-              Register
-            </Button>
+          <div className="justify-self-end flex items-center gap-2">
+            {loggedIn ? (
+              <Button variant="secondary" onClick={() => navigate("/user-dashboard")}>Dashboard</Button>
+            ) : (
+              <Button variant="secondary" onClick={() => navigate("/auth?mode=login")}>Login</Button>
+            )}
           </div>
         </div>
       </header>
@@ -47,7 +45,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             {/* About Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <img src="/cpms-logo.svg" alt="CPMS" className="h-8 w-8" />
+                <img src="/images/logo.png" alt="CPMS" className="h-8 w-8" />
                 <div className="flex flex-col leading-tight">
                   <span className="text-sm font-semibold">CPMS</span>
                   <span className="text-xs text-muted-foreground">County Government</span>

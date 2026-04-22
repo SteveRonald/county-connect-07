@@ -68,17 +68,18 @@ final class Router
         $path = rtrim($path, '/') ?: '/';
 
         $paramNames = [];
+        if (preg_match_all('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', $pattern, $nameMatches)) {
+            $paramNames = $nameMatches[1];
+        }
 
-        $regex = preg_replace_callback('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', static function (array $m) use (&$paramNames): string {
-            $paramNames[] = $m[1];
-            return '([^/]+)';
-        }, preg_quote($pattern, '#'));
+        $quotedPattern = preg_quote($pattern, '#');
+        $regex = preg_replace('/\\\{[a-zA-Z_][a-zA-Z0-9_]*\\\}/', '([^/]+)', $quotedPattern);
 
-        if (!is_string($regex)) {
+        if (!is_string($regex) || $regex === '') {
             return null;
         }
 
-        $regex = '#^' . str_replace(['\\{', '\\}'], ['{', '}'], $regex) . '$#';
+        $regex = '#^' . $regex . '$#';
 
         if (!preg_match($regex, $path, $matches)) {
             return null;
