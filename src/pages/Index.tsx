@@ -77,9 +77,6 @@ const Index = () => {
                 <Button onClick={() => navigate("/auth?mode=register")} className="h-11 rounded-full px-6 bg-white text-slate-950 hover:bg-slate-100">
                   Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button onClick={() => navigate("/auth?mode=login")} className="h-11 rounded-full px-6 border border-white/20 bg-white/15 text-white hover:bg-white/20 hover:text-white">
-                  Login
-                </Button>
               </div>
 
               <div className="mt-10 grid gap-3 sm:grid-cols-3 lg:max-w-5xl lg:mx-auto">

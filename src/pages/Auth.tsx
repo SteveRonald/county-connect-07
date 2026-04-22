@@ -89,8 +89,6 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center mb-8">
           <img src="/images/logo.png" alt="CPMS" className="w-12 h-12 mx-auto mb-4 object-contain" />
-          <h1 className="text-2xl font-bold text-foreground">CPMS</h1>
-          <p className="text-muted-foreground">Centralized Population Management System</p>
         </div>
 
         <Card>
